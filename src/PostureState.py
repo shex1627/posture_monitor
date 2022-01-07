@@ -26,11 +26,11 @@ class OrderedDefaultDict(OrderedDict):
 
 class PostureState:
     fps = 25
-    EXPORT_MIN = 10
+    EXPORT_MIN = 15
     SECOND_PER_MIN = 60
     FRAME_THRESHOLD = fps * SECOND_PER_MIN * EXPORT_MIN
 
-    def __init__(self, score_func: Callable, if_bad_posture: Callable, dir=None):
+    def __init__(self, name: str, score_func: Callable, if_bad_posture: Callable, dir=None):
         self.score_by_frame = OrderedDefaultDict()
         self.score_by_second = OrderedDefaultDict()
         self.score_lst = []
@@ -38,6 +38,7 @@ class PostureState:
         self.if_bad_posture = if_bad_posture
         self.dir = dir
         self.last_alert_time = 0
+        self.name = name
 
     def update(self, landmarks: list):
         """ add postuer data per frame. """
@@ -51,7 +52,7 @@ class PostureState:
             # with open(outfile_name, 'wb') as outfile:
             #     pickle.dump(self.score_lst, outfile)
             # exporting frame data
-            outfile_name = os.path.join(self.dir, f"data_{self.get_time()}.json")
+            outfile_name = os.path.join(self.dir, f"data_{self.name}_{self.get_time()}.json")
             logger.info(f"saving data to {outfile_name}")
             with open(outfile_name, 'w') as outfile:
                 json.dump(self.score_by_frame, outfile, indent=4)
