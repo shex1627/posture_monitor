@@ -14,7 +14,6 @@ from posture_monitor.src.PostureAlertRule import *
 from posture_monitor.src.PostureMetricTs import *
 
 
-
 from posture_monitor.src.util import calculate_landmark_line, get_time
 from posture_monitor.src.PostureSession import PostureSession
 
@@ -29,6 +28,14 @@ logging.basicConfig(
     handlers=handlers
 )
 logger = logging.getLogger('posture_monitor')
+
+# variable and functions for toggle feature
+program_on = True
+alert_toggle = True
+KEY_ALERT_ON = Key.f7
+KEY_ALERT_OFF = Key.f8
+KEY_EXIT = Key.f9
+
 
 def main():
     mp_drawing = mp.solutions.drawing_utils
@@ -60,17 +67,11 @@ def main():
         #leanleft_metric.name: leanleft_metric,
         #leanright_metric.name: leanright_metric
     }
-    pSession = PostureSession(metricTsDict, [headdown_alert]) #AlertRule(alert_rule=lambda metricDict: 
+    pSession = PostureSession(metricTsDict, [headdown_alert], data_dir="test_dir") #AlertRule(alert_rule=lambda metricDict: 
 
-    # variable and functions for toggle feature
-    program_on = True
-    alert_toggle = True
-    KEY_ALERT_ON = Key.f9
-    KEY_ALERT_OFF = Key.f10
-    KEY_EXIT = Key.f11
-
+    
     def on_press_start(key, key_alert_on=KEY_ALERT_ON, exit=KEY_EXIT):
-        global toggle
+        global alert_toggle
         global program_on
         #print("Key pressed: {0}".format(key))
         if key == key_alert_on:
@@ -80,8 +81,8 @@ def main():
 
         if key == exit:
             print('exiting...')
-            program_on = False
-            return False
+            sys.exit()
+
 
     def on_press_loop(key, key_alert_off=KEY_ALERT_OFF, exit=KEY_EXIT):
         global alert_toggle
@@ -100,7 +101,6 @@ def main():
             print('exiting...')
             program_on = False
             sys.exit()
-            return False
 
 
     if program_on:
@@ -137,7 +137,7 @@ def main():
                             left_lip_shoulder_x_diff =np.abs(landmark_lst[11].x - landmark_lst[9].x)
                             
                             eye_pos = min(landmark_lst[6].y, landmark_lst[3].y)
-                            logging.info(f"eye position: {eye_pos}")
+                            logging.info(f"alert_toggle: {alert_toggle}")
                             
                             #in_bad_posture = headdown_metric.bad_posture()
                             if alert_toggle:

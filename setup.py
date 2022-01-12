@@ -14,7 +14,6 @@ setup(
     long_description="no description",
     author='shicheng huang',
     author_email='shicheng1627@gmail.com',
-    #url='https://github.com/kennethreitz/samplemod',
     license=license,
     packages=find_packages(exclude=('tests', 'docs'))
 )
