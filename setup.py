@@ -9,7 +9,7 @@ with open('LICENSE') as f:
 
 setup(
     name='posture_monitor',
-    version='0.1.0',
+    version='1.0.0',
     description='no description',
     long_description="no description",
     author='shicheng huang',

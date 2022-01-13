@@ -56,7 +56,7 @@ class PostureSession:
             """ Play the alert sound."""
             logging.info("in bad posture, triggering alert")
             now = get_time()
-            if now - self._last_alert_time > 0.5:
+            if now - self._last_alert_time > 1:
                 self._last_alert_time = now 
                 winsound.PlaySound(alert_sound_file, winsound.SND_ASYNC |  winsound.SND_FILENAME) #
 
@@ -77,8 +77,6 @@ class PostureSession:
             # create session root data folder
             session_data_dir = os.path.join(self.data_dir, f"session_{self.start_time}")
             os.makedirs(session_data_dir)
-            #for metric_name in self.metrics:
-            #    os.makedirs(os.path.join(session_data_dir, metric_name+".log"))
 
         
         def export_data(self):

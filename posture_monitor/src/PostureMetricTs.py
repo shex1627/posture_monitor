@@ -12,13 +12,12 @@ logger = logging.getLogger("PostureMetricTs")
 class PostureMetricTs:
     DEFAULT_NULL_FILL = 0
 
-    def __init__(self, name: str, metric_func: Callable, data_dir=None,
+    def __init__(self, name: str, metric_func: Callable,
     fillna=DEFAULT_NULL_FILL):
         self.name = name
         self.get_metric = metric_func   
         self.second_to_frame_scores = OrderedDefaultDict()
         self.second_to_avg_frame_scores = defaultdict(lambda : fillna) # default to negative 
-        self.data_dir = data_dir
         self.fillna = fillna
         
     
@@ -41,31 +40,20 @@ class PostureMetricTs:
         get_past_data(seconds=3, start_time=10) ->
             t9, t8, t7
         """
-        #print(f"now {get_time()}")
-        #print(f"past data: {self.second_to_avg_frame_scores}")
         if not start_time:
             start_time = get_time()
         past_data = []
         if seconds > 0:
-            #print(f"seconds {seconds}")
             for i in reversed(range(seconds)):
-                #print(f"index: {i}")
                 past_time = start_time -1 - i
                 data = self.second_to_avg_frame_scores[past_time]
                 
                 if transform and data != self.fillna:
                     past_data.append(transform(data))
-                    #print(f"transform data: {transform(data)}")
                 else:
                     past_data.append(data)
                     #print(f"data: {data}")
         return past_data
-
-    def agg_past_data(agg_func: Callable, seconds: int, start_time: int=get_time()) -> float:
-        """aggregate past data into a single number.
-        """
-        pass
-
 
 
 class PostureSubMetricTs(PostureMetricTs):
