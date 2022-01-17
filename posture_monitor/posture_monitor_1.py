@@ -34,7 +34,7 @@ program_on = True
 alert_toggle = True
 KEY_ALERT_ON = Key.f7
 KEY_ALERT_OFF = Key.f8
-KEY_EXIT = Key.f9
+KEY_EXIT = Key.f6
 
 def on_press_start(key, key_alert_on=KEY_ALERT_ON, exit=KEY_EXIT):
         global alert_toggle
@@ -66,7 +66,7 @@ def on_press_loop(key, key_alert_off=KEY_ALERT_OFF, exit=KEY_EXIT):
     if key == exit:
         print('exiting...')
         program_on = False
-        sys.exit()
+        return True
 
 def main():
     mp_drawing = mp.solutions.drawing_utils
@@ -84,7 +84,7 @@ def main():
 
     
     headdown_10_seconds_metric_funct = if_metric_fail_avg_and_last_second("headdown", 
-    lambda head_level: head_level > 0.31, seconds=10, percent=1.00)
+    lambda head_level: head_level > 0.31, seconds=5, percent=1.00)
     headdown_10_seconds = PostureSubMetricTs("headdown_seconds", headdown_10_seconds_metric_funct)
     headdown_alert = PostureKDeltaAlert('headdown_10_seconds', headdown_10_seconds, 1)
 
@@ -111,58 +111,56 @@ def main():
     }
     pSession = PostureSession(metricTsDict, [headdown_alert, shoulder_tilt_alert], data_dir="test_dir") #AlertRule(alert_rule=lambda metricDict: #headdown_alert, 
 
-    if program_on:
-        with Listener(on_press=on_press_start) as listener:
-            listener.join() # wait for F11...
+    with Listener(on_press=on_press_loop) as listener:
+        #listener.join()
+        # For webcam input:
+        print("loop listener")
+        cap = cv2.VideoCapture(0)
+        with mp_pose.Pose(
+            min_detection_confidence=0.5,
+            min_tracking_confidence=0.5) as pose:
+            while cap.isOpened() and program_on:
+                print(f"cap open, program_on {program_on}")
+                success, image = cap.read()
+                if not success:
+                    print("Ignoring empty camera frame.")
+                    # If loading a video, use 'break' instead of 'continue'.
+                    continue
 
-            with Listener(on_press=on_press_loop) as listener:
-                # For webcam input:
-                cap = cv2.VideoCapture(0)
-                with mp_pose.Pose(
-                    min_detection_confidence=0.5,
-                    min_tracking_confidence=0.5) as pose:
-                    while cap.isOpened():
-                        success, image = cap.read()
-                        if not success:
-                            print("Ignoring empty camera frame.")
-                            # If loading a video, use 'break' instead of 'continue'.
-                            continue
+                # To improve performance, optionally mark the image as not writeable to
+                # pass by reference.
+                image.flags.writeable = False
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                results = pose.process(image)
 
-                        # To improve performance, optionally mark the image as not writeable to
-                        # pass by reference.
-                        image.flags.writeable = False
-                        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                        results = pose.process(image)
+                # log landmarks
+                if results.pose_landmarks:
+                    landmark_lst = results.pose_landmarks.ListFields()[0][1]
+                    logging.info(f"alert_toggle: {alert_toggle}")
+                    
+                    if alert_toggle:
+                        pSession.update_metrics(landmark_lst)
+                        alerts_trigger = pSession.check_posture_alert()
+                        logger.debug(f"alert trigger: {alerts_trigger}")
 
-                        # log landmarks
-                        if results.pose_landmarks:
-                            landmark_lst = results.pose_landmarks.ListFields()[0][1]
-                            logging.info(f"alert_toggle: {alert_toggle}")
-                            
-                            if alert_toggle:
-                                pSession.update_metrics(landmark_lst)
-                                alerts_trigger = pSession.check_posture_alert()
-                                logger.debug(f"alert trigger: {alerts_trigger}")
-
-                        # Draw the pose annotation on the image.
-                        image.flags.writeable = True
-                        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                        mp_drawing.draw_landmarks(
-                            image,
-                            results.pose_landmarks,
-                            mp_pose.POSE_CONNECTIONS,
-                            landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
-                        
-                        image_flip = cv2.flip(image, 1)
-                        # Flip the image horizontally for a selfie-view display.
-                        cv2.imshow('MediaPipe Pose', image_flip)
-                        cv2.setWindowProperty('MediaPipe Pose', cv2.WND_PROP_TOPMOST, 1)
-                        # leave app when click `esc` key
-                        if cv2.waitKey(5) & 0xFF == 27:
-                            break
-                cap.release()
-                sys.exit()
-
+                # Draw the pose annotation on the image.
+                image.flags.writeable = True
+                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                mp_drawing.draw_landmarks(
+                    image,
+                    results.pose_landmarks,
+                    mp_pose.POSE_CONNECTIONS,
+                    landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
+                
+                image_flip = cv2.flip(image, 1)
+                # Flip the image horizontally for a selfie-view display.
+                cv2.imshow('MediaPipe Pose', image_flip)
+                cv2.setWindowProperty('MediaPipe Pose', cv2.WND_PROP_TOPMOST, 1)
+                # leave app when click `esc` key
+                if cv2.waitKey(5) & 0xFF == 27:
+                    break
+            cap.release()
+            sys.exit()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
