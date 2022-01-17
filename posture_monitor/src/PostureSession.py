@@ -14,6 +14,7 @@ import winsound
 import logging
 import json
 import threading
+from shutil import copy
 
 from posture_monitor.src.PostureMetricTs import PostureMetricTs, PostureSubMetricTs
 from posture_monitor.src.PostureAlertRule import PostureKDeltaAlert, PostureAlertRule
@@ -25,7 +26,8 @@ logger = logging.getLogger("PostureSession")
 class PostureSession:
 
         def __init__(self, metricTsDict: Dict[str, PostureMetricTs], alertRules: List[PostureAlertRule], 
-        data_dir=None, data_export_min=15) -> None:
+        config_datapath=None, data_dir=None, 
+        data_export_min=15) -> None:
             self.metrics = metricTsDict
             self.alertRules = alertRules
             self._last_alert_time = 0
@@ -33,7 +35,7 @@ class PostureSession:
             self.last_data_export_time = self.start_time
             self.data_export_min = data_export_min
             # create session file dir if not exists
-            self.data_dir = data_dir
+            self.data_dir, self.config_datapath = data_dir, config_datapath
             self.session_data_dir = os.path.join(data_dir, f"session_{self.start_time}_{self.start_time}")
             if data_dir:
                 self.init_data_dir()
@@ -77,9 +79,10 @@ class PostureSession:
             # Create a new directory because it does not exist 
                 os.makedirs(self.data_dir)
             # create session root data folder
-            #session_data_dir = os.path.join(self.data_dir, f"session_{self.start_time}")
             os.makedirs(self.session_data_dir)
-
+            # copy session config files, mostly metrics, to session_data_dir
+            if self.config_datapath:
+                copy(self.config_datapath, self.session_data_dir)
         
         def export_data(self):
             """export all metrics data if last export time is old enough."""
