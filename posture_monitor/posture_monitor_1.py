@@ -84,9 +84,9 @@ def main():
 
     
     headdown_10_seconds_metric_funct = if_metric_fail_avg_and_last_second("headdown", 
-    lambda head_level: head_level > 0.31, seconds=5, percent=1.00)
+    lambda head_level: head_level > 0.31, seconds=4, percent=1.00)
     headdown_10_seconds = PostureSubMetricTs("headdown_seconds", headdown_10_seconds_metric_funct)
-    headdown_alert = PostureKDeltaAlert('headdown_10_seconds', headdown_10_seconds, 1)
+    headdown_alert = PostureKDeltaAlert('headdown', headdown_10_seconds, 1)
 
     rightshoulder_down_metric_funct = if_metric_fail_avg_and_last_second("right_shoulder_y", 
     lambda right_shoulder_y: right_shoulder_y >= 0.57, seconds=2, percent=1.00)
@@ -94,9 +94,9 @@ def main():
     rightshoulder_down_alert = PostureKDeltaAlert('rightshoulder_10s_down', rightshoulder_down_10_seconds, 1)
 
     left_right_shoulder_y_diff = PostureMetricTs("left_right_shoulder_y_diff", metric_func=lambda landmarks: np.abs(landmark_lst[11].y - landmark_lst[12].y))
-    shoulder_tilt_metric_funct = if_metric_fail_avg_and_last_second("left_right_shoulder_y_diff", lambda level_diff: level_diff > 0.02, seconds=3, percent=1.00)
+    shoulder_tilt_metric_funct = if_metric_fail_avg_and_last_second("left_right_shoulder_y_diff", lambda level_diff: level_diff > 0.02, seconds=4, percent=1.00)
     shoulder_tilt_seconds = PostureSubMetricTs("shoulder_tilt_seconds", shoulder_tilt_metric_funct)
-    shoulder_tilt_alert = PostureKDeltaAlert("shoulder_tilt_seconds", shoulder_tilt_seconds, 1)
+    shoulder_tilt_alert = PostureKDeltaAlert("shoulder_tilts", shoulder_tilt_seconds, 1)
 
     metricTsDict = {    
         headdown_metric.name: headdown_metric,
@@ -120,6 +120,8 @@ def main():
             min_detection_confidence=0.5,
             min_tracking_confidence=0.5) as pose:
             while cap.isOpened() and program_on:
+                # initalize alert trigger is false
+                alerts_trigger = []
                 print(f"cap open, program_on {program_on}")
                 success, image = cap.read()
                 if not success:
@@ -153,8 +155,25 @@ def main():
                     landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
                 
                 image_flip = cv2.flip(image, 1)
+                #
+                if results.pose_landmarks and alerts_trigger:
+                    y_increment = 120
+                    y_init = 100# - y_increment
+                    font_scale = 2.5
+                    red_background = np.full((image_flip.shape[0], image_flip.shape[1], 3), (0, 0, 255),dtype=np.uint8)
+                    image_flip = cv2.addWeighted(image_flip, 0.5, red_background, 0.5, 0)
+                    for i in range(len(alerts_trigger)):
+                        cv2.putText(img=image_flip, text=alerts_trigger[i], org=(100,y_init+i*y_increment), 
+                        fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=6, lineType=cv2.LINE_AA)
                 # Flip the image horizontally for a selfie-view display.
-                cv2.imshow('MediaPipe Pose', image_flip)
+                scale_percent = 50 # percent of original size
+                width = int(image_flip.shape[1] * scale_percent / 100)
+                height = int(image_flip.shape[0] * scale_percent / 100)
+                dim = (width, height)
+                #cv2.imshow('MediaPipe Pose', cv2.resize(image_flip, dsize=dim, interpolation = cv2.INTER_AREA))
+                image_resized = cv2.resize(image_flip, dsize=dim, interpolation = cv2.INTER_AREA)
+                cv2.imshow('MediaPipe Pose', image_resized)
+                print(image_flip.shape, image_resized.shape, dim)
                 cv2.setWindowProperty('MediaPipe Pose', cv2.WND_PROP_TOPMOST, 1)
                 # leave app when click `esc` key
                 if cv2.waitKey(5) & 0xFF == 27:

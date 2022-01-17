@@ -34,7 +34,7 @@ class PostureSession:
             self.data_export_min = data_export_min
             # create session file dir if not exists
             self.data_dir = data_dir
-            self.session_data_dir = os.path.join(data_dir, f"session_{self.start_time}")
+            self.session_data_dir = os.path.join(data_dir, f"session_{self.start_time}_{self.start_time}")
             if data_dir:
                 self.init_data_dir()
 
@@ -47,7 +47,9 @@ class PostureSession:
                 else:
                     metric.update(landmarks)
             now = get_time()
-            if export_data and self.data_dir and (now - self.last_data_export_time) > 5:
+            # to-do update this to use data_export_min parameter
+            if export_data and self.data_dir and (now - self.last_data_export_time) > 10:
+                logger.debug(f"current session dir: {self.session_data_dir}")
                 th = threading.Thread(target=self.export_data)
                 th.start()
                 self.last_data_export_time = now
@@ -75,13 +77,19 @@ class PostureSession:
             # Create a new directory because it does not exist 
                 os.makedirs(self.data_dir)
             # create session root data folder
-            session_data_dir = os.path.join(self.data_dir, f"session_{self.start_time}")
-            os.makedirs(session_data_dir)
+            #session_data_dir = os.path.join(self.data_dir, f"session_{self.start_time}")
+            os.makedirs(self.session_data_dir)
 
         
         def export_data(self):
             """export all metrics data if last export time is old enough."""
-            logging.debug("writing to file")
+            logger.debug("renaming session data dir based on end_time")
+            now = get_time()
+            new_session_data_dir = os.path.join(self.data_dir, f"session_{self.start_time}_{now}")
+            os.rename(self.session_data_dir, new_session_data_dir)
+            self.session_data_dir = new_session_data_dir
+
+            logger.debug("writing to file")
             for metric_name in self.metrics:
                 metric_filepath = os.path.join(self.session_data_dir, metric_name+".json")
                 with open(metric_filepath, 'w') as outfile:
