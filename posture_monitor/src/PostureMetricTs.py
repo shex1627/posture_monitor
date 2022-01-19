@@ -1,5 +1,6 @@
 import time 
 import os
+import json
 from typing import Callable, OrderedDict, List, Dict
 from posture_monitor.src.util import OrderedDefaultDict
 from collections import defaultdict
@@ -54,6 +55,35 @@ class PostureMetricTs:
                     past_data.append(data)
                     #print(f"data: {data}")
         return past_data
+
+    
+    def reset_data(self):
+        """ Remove all historical data."""
+        self.second_to_frame_scores = OrderedDefaultDict()
+        self.second_to_avg_frame_scores = defaultdict(lambda : self.fillna)
+
+    def export_data(self, data_dir: str):
+        """
+        export data to data dir, then reset data
+        """
+        # do nothing if no data to export
+        if len(self.second_to_avg_frame_scores) <= 0:
+            return 
+        metric_filepath = os.path.join(data_dir, self.name+".json")
+        # load historical data if exist
+        if os.path.exists(metric_filepath):
+            with open(metric_filepath, 'r') as infile:
+                historical_data = json.load(infile)
+        else:
+            historical_data = defaultdict(lambda : self.fillna)
+        # update with latest data
+        current_data = {str(ts): value for ts, value in self.second_to_avg_frame_scores.items()}
+        historical_data.update(current_data)
+        # dump updated data
+        with open(metric_filepath, 'w') as outfile:
+            json.dump(historical_data, outfile, indent=4)
+        # reset data
+        self.reset_data()
 
 
 class PostureSubMetricTs(PostureMetricTs):

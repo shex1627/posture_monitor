@@ -35,27 +35,10 @@ camera_on = True
 alert_on = True
 track_data_on = True
 program_on = True
-# KEY_ALERT_ON = Key.f7
-# KEY_ALERT_OFF = Key.f8
-# KEY_EXIT = Key.f6
 KEY_ALERT_TOGGLE = Key.f6
 KEY_TRACK_DATA_TOGGLE = Key.f7
 KEY_CAMERA_TOGGLE = Key.f8
 KEY_EXIT = Key.f4
-
-
-# def on_press_start(key, key_alert_on=KEY_ALERT_ON, exit=KEY_EXIT):
-#         global alert_toggle
-#         global camera_on
-#         #print("Key pressed: {0}".format(key))
-#         if key == key_alert_on:
-#             logging.info("alert on")
-#             alert_toggle = True
-#             return False
-
-#         if key == exit:
-#             print('exiting...')
-#             sys.exit()
 
 
 def on_press_loop(key):
@@ -65,6 +48,7 @@ def on_press_loop(key):
     global program_on
 
     if key == KEY_TRACK_DATA_TOGGLE:
+        """turn off alert if data tracking is off."""
         track_data_on = not track_data_on
         if not track_data_on:
             alert_on = False
@@ -72,6 +56,7 @@ def on_press_loop(key):
         return True
 
     if key == KEY_ALERT_TOGGLE:
+        """turn on data tracking if alert is on as well."""
         alert_on = not alert_on
         if alert_on:
             track_data_on = True
@@ -84,6 +69,7 @@ def on_press_loop(key):
         return True
 
     if key == KEY_EXIT:
+        """turn off camera before program exits"""
         camera_on = not camera_on
         program_on = False
         logging.info(f"exiting program")
@@ -100,13 +86,15 @@ def main():
     cap = cv2.VideoCapture(0)
     while program_on:
         with Listener(on_press=on_press_loop) as listener:
-            #listener.join()
             # For webcam input:
             print("loop listener")
+
             if not camera_on:
                 cv2.destroyAllWindows()
             else:
                 cv2.namedWindow("Posture Monitor", cv2.WINDOW_AUTOSIZE)
+                cv2.setWindowProperty('Posture Monitor', cv2.WND_PROP_TOPMOST, 1)
+
             with mp_pose.Pose(
                 min_detection_confidence=0.5,
                 min_tracking_confidence=0.5) as pose:
@@ -159,6 +147,16 @@ def main():
                         for i in range(len(alerts_trigger)):
                             cv2.putText(img=image_flip, text=alerts_trigger[i], org=(100,y_init+i*y_increment), 
                             fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=6, lineType=cv2.LINE_AA)
+                    
+                    # show on windows if tracking and alert are on
+                    y_increment = 60
+                    y_init = 400
+                    font_scale = 1
+                    cv2.putText(img=image_flip, text=f"alert_on: {alert_on}", org=(0, y_init), 
+                            fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
+                    cv2.putText(img=image_flip, text=f"track_data_on: {track_data_on}", org=(0,y_init+y_increment), 
+                            fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
+
                     # Flip the image horizontally for a selfie-view display.
                     scale_percent = 50 # percent of original size
                     width = int(image_flip.shape[1] * scale_percent / 100)
@@ -180,7 +178,6 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     #parser.add_argument("--input_file", help="data file with filename field", default=False)
-    args = parser.parse_args()
     parser.add_argument('--window_size',
                     default='small',
                     #const='all',
@@ -192,6 +189,7 @@ if __name__ == '__main__':
     # this should default true
     parser.add_argument('--windows_on_top',
                     help="flag to determine if window is always on top of all other windows", action="store_true")
+    args = parser.parse_args()
     main()
 
     # run main

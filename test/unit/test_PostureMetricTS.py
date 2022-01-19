@@ -1,26 +1,43 @@
 from collections import defaultdict
 import time
 import os
+from turtle import update
 import pytest
+from unittest.mock import patch
+import json
+import shutil
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 from posture_monitor.src.PostureMetricTs import PostureMetricTs, PostureSubMetricTs
 from posture_monitor.src.PostureMetricTs import if_metric_fail_avg_and_last_second
 from posture_monitor.src.util import get_time
-from unittest.mock import patch
+
+
+TEMP_DIR = 'test/temp_test_dir'
+def create_temp_dir():
+    if not os.path.exists(TEMP_DIR):
+        # Create a new directory because it does not exist 
+        print("creating temp dir")
+        os.makedirs(TEMP_DIR)
+    else:
+        print('temp dir exists')
+
+def cleanup_temp_dir():
+    if os.path.exists(TEMP_DIR):
+        shutil.rmtree(TEMP_DIR)
+
 
 @pytest.fixture()
 def test_metricTs():
     test_metricTs = \
             PostureMetricTs("test_metric", 
-            metric_func=lambda landmarks: landmarks[0], 
-            data_dir="test_data")
+            metric_func=lambda landmarks: landmarks[0])
     return test_metricTs
 
 def test_update():
     test_metricTs = \
             PostureMetricTs("test_metric", 
-            metric_func=lambda landmarks: landmarks[0], 
-            data_dir="test_data")
+            metric_func=lambda landmarks: landmarks[0])
 
     test_landmarks_1 = [1]
     test_landmarks_2 = [4]
@@ -46,8 +63,7 @@ def test_update():
 def test_get_past_data_full_data():
     test_metricTs = \
             PostureMetricTs("test_metric", 
-            metric_func=lambda landmarks: landmarks[0], 
-            data_dir="test_data")
+            metric_func=lambda landmarks: landmarks[0])
 
     
     now = get_time()
@@ -68,8 +84,7 @@ def test_get_past_data_full_data():
 def test_get_past_data_skip_data():
     test_metricTs = \
             PostureMetricTs("test_metric", 
-            metric_func=lambda landmarks: landmarks[0], 
-            data_dir="test_data")
+            metric_func=lambda landmarks: landmarks[0])
 
     
     now = get_time()
@@ -91,8 +106,7 @@ def test_get_past_data_skip_data():
 def test_posture_checking_function():
     test_metricTs = \
             PostureMetricTs("test_metric", 
-            metric_func=lambda landmarks: landmarks[0], 
-            data_dir="test_data")  
+            metric_func=lambda landmarks: landmarks[0])  
     test_metricTs_dict = {'test_metric': test_metricTs}
     sub_metric_func = if_metric_fail_avg_and_last_second('test_metric',
         threshold_rule = lambda metric: int(metric > 0.5),
@@ -115,8 +129,7 @@ def test_posture_checking_function():
 def test_posture_submetrics_update():
     test_metricTs = \
             PostureMetricTs("test_metric", 
-            metric_func=lambda landmarks: landmarks[0], 
-            data_dir="test_data")  
+            metric_func=lambda landmarks: landmarks[0])  
     test_metricTs_dict = {'test_metric': test_metricTs}
     sub_metric_func = if_metric_fail_avg_and_last_second('test_metric',
         threshold_rule = lambda metric: int(metric > 0.5),
@@ -144,8 +157,7 @@ def test_posture_submetrics_update():
 def test_posture_submetrics_get_past_data():
     test_metricTs = \
             PostureMetricTs("test_metric", 
-            metric_func=lambda landmarks: landmarks[0], 
-            data_dir="test_data")  
+            metric_func=lambda landmarks: landmarks[0])  
     test_metricTs_dict = {'test_metric': test_metricTs}
     sub_metric_func = if_metric_fail_avg_and_last_second('test_metric',
         threshold_rule = lambda metric: int(metric > 0.5),
@@ -166,3 +178,41 @@ def test_posture_submetrics_get_past_data():
     #test_SubMetricTs.update(test_metricTs_dict)
     result = test_SubMetricTs.get_past_data(seconds=4)
     assert result==[0.1, 0.1, 1, 1]
+    
+
+def test_export_data():
+    """
+    create fake json, dump it as historical data
+    create new data
+    call expoert method
+    
+    load updated file
+    
+    assert if data is updated
+    assert if data is reset
+
+    clean up temp_dir
+    """
+    create_temp_dir()
+    test_metricTs = \
+            PostureMetricTs("test_metric", 
+            metric_func=lambda landmarks: landmarks[0])
+
+    historical_data = {1:1, 2:2}
+    data_file = os.path.join(TEMP_DIR, test_metricTs.name+".json")
+
+    with open(data_file, 'w') as outfile:
+        json.dump(historical_data, outfile, indent=4)
+
+    new_data = {3:3, 4:4}
+    test_metricTs.second_to_avg_frame_scores.update(new_data)
+    test_metricTs.export_data(TEMP_DIR)
+
+    with open(data_file, 'r') as infile:
+        update_data = json.load(infile)
+
+    assert update_data == {
+        str(i):i for i in range(1, 5)
+    }
+    assert len(test_metricTs.second_to_avg_frame_scores) == 0 
+    cleanup_temp_dir()

@@ -12,8 +12,7 @@ from unittest.mock import patch
 def test_alert_trigger():
     test_metricTs = \
             PostureMetricTs("test_metric", 
-            metric_func=lambda landmarks: landmarks[0], 
-            data_dir="test_data")
+            metric_func=lambda landmarks: landmarks[0])
     now = get_time()
     test_metricTs.second_to_avg_frame_scores.update({
         now -1: 1
@@ -26,8 +25,7 @@ def test_alert_trigger():
 def test_alert_not_trigger():
     test_metricTs = \
             PostureMetricTs("test_metric", 
-            metric_func=lambda landmarks: landmarks[0], 
-            data_dir="test_data")
+            metric_func=lambda landmarks: landmarks[0])
     now = get_time()
     test_metricTs.second_to_avg_frame_scores.update({
         now -1: 0.1

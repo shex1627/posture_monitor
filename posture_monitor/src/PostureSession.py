@@ -40,6 +40,8 @@ class PostureSession:
             if data_dir:
                 self.init_data_dir()
 
+            self.alertTS = PostureMetricTs("alert_ts",lambda landmarks: 0)
+
         def update_metrics(self, landmarks, export_data=True) -> None:
             """Update all the metrics. If a metric is a submetric, then feed in the metricDict"""
             for metric in self.metrics.values():
@@ -70,11 +72,16 @@ class PostureSession:
             for alert in self.alertRules:
                 if alert.alert_trigger(self.metrics):
                     alerts_triggered.append(alert.name)
-            if trigger_sound and len(alerts_triggered):
-                self.trigger_alert_sound()
+            if len(alerts_triggered):
+                self.alertTS.second_to_avg_frame_scores[get_time()] = 1
+                if trigger_sound:
+                    self.trigger_alert_sound()
+            else:
+                self.alertTS.second_to_avg_frame_scores[get_time()] = 0
             return alerts_triggered    
 
         def init_data_dir(self) -> None:
+            """ create session directory, copies all the session config to directory."""
             if not os.path.exists(self.data_dir):
             # Create a new directory because it does not exist 
                 os.makedirs(self.data_dir)
@@ -85,7 +92,12 @@ class PostureSession:
                 copy(self.config_datapath, self.session_data_dir)
         
         def export_data(self):
-            """export all metrics data if last export time is old enough."""
+            """export all metrics data if last export time is old enough.
+            Also resets all the data.
+
+            metric data are json files, each key is integer time, value is the 
+            avg value of the metric during the second.
+            """
             logger.debug("renaming session data dir based on end_time")
             now = get_time()
             new_session_data_dir = os.path.join(self.data_dir, f"session_{self.start_time}_{now}")
@@ -95,8 +107,11 @@ class PostureSession:
             logger.debug("writing to file")
             for metric_name in self.metrics:
                 metric_filepath = os.path.join(self.session_data_dir, metric_name+".json")
-                with open(metric_filepath, 'w') as outfile:
-                    data = self.metrics[metric_name].second_to_avg_frame_scores
-                    json.dump(data, outfile, indent=4)
+                # with open(metric_filepath, 'w') as outfile:
+                #     data = self.metrics[metric_name].second_to_avg_frame_scores
+                #     json.dump(data, outfile, indent=4)
+                self.metrics[metric_name].export_data(self.session_data_dir)
+        
+            self.alertTS.export_data(self.session_data_dir)
                     
 
