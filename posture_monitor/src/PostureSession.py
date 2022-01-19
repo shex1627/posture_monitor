@@ -43,7 +43,7 @@ class PostureSession:
         def update_metrics(self, landmarks, export_data=True) -> None:
             """Update all the metrics. If a metric is a submetric, then feed in the metricDict"""
             for metric in self.metrics.values():
-                logger.info(f"updateing {metric.name}")
+                #logger.info(f"updateing {metric.name}")
                 if isinstance(metric, PostureSubMetricTs):
                     metric.update(self.metrics)
                 else:
