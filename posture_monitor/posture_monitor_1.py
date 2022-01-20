@@ -24,15 +24,18 @@ stdout_handler = logging.StreamHandler(sys.stdout)
 handlers = [file_handler, stdout_handler]
 
 logging.basicConfig(
-    level=logging.INFO, 
+    level=logging.DEBUG, 
     format='%(asctime)s|%(name)s|%(levelname)s|%(message)s',
     handlers=handlers
 )
 logger = logging.getLogger('posture_monitor')
 
 # variable and functions for toggle feature
+WINDOW_NAME = "Posture Monitor"
+SCALE_PERCENT = 100
+WINDOW_ON_TOP = True
 camera_on = True
-alert_on = True
+sound_alert_on = True
 track_data_on = True
 program_on = True
 KEY_ALERT_TOGGLE = Key.f6
@@ -42,7 +45,7 @@ KEY_EXIT = Key.f4
 
 
 def on_press_loop(key):
-    global alert_on
+    global sound_alert_on
     global track_data_on
     global camera_on
     global program_on
@@ -51,16 +54,16 @@ def on_press_loop(key):
         """turn off alert if data tracking is off."""
         track_data_on = not track_data_on
         if not track_data_on:
-            alert_on = False
+            sound_alert_on = False
         logging.info(f"track data toggle to {track_data_on}")
         return True
 
     if key == KEY_ALERT_TOGGLE:
         """turn on data tracking if alert is on as well."""
-        alert_on = not alert_on
-        if alert_on:
+        sound_alert_on = not sound_alert_on
+        if sound_alert_on:
             track_data_on = True
-        logging.info(f"alert toggle to {alert_on}")
+        logging.info(f"alert toggle to {sound_alert_on}")
         return True
     
     if key == KEY_CAMERA_TOGGLE:
@@ -76,6 +79,8 @@ def on_press_loop(key):
         return True
 
 def main():
+    global SCALE_PERCENT
+    global WINDOW_ON_TOP
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
     mp_pose = mp.solutions.pose 
@@ -91,9 +96,14 @@ def main():
 
             if not camera_on:
                 cv2.destroyAllWindows()
+                cap.release()
             else:
-                cv2.namedWindow("Posture Monitor", cv2.WINDOW_AUTOSIZE)
-                cv2.setWindowProperty('Posture Monitor', cv2.WND_PROP_TOPMOST, 1)
+                cv2.namedWindow(WINDOW_NAME , cv2.WINDOW_AUTOSIZE)
+                cv2.moveWindow(WINDOW_NAME , 20,20)
+                if WINDOW_ON_TOP:
+                    cv2.setWindowProperty(WINDOW_NAME , cv2.WND_PROP_TOPMOST, 1)
+                if not cap.isOpened():
+                    cap = cv2.VideoCapture(0)
 
             with mp_pose.Pose(
                 min_detection_confidence=0.5,
@@ -101,7 +111,7 @@ def main():
                 while camera_on and cap.isOpened():
                     
                     # initalize alert trigger is false
-                    logging.info(f"alert_on: {alert_on}")
+                    logging.info(f"sound_alert_on: {sound_alert_on}")
                     logging.info(f"track_data_on: {track_data_on}")
 
                     alerts_trigger = []
@@ -123,9 +133,9 @@ def main():
                         if track_data_on:
                             pSession.update_metrics(landmark_lst)
 
-                        if alert_on:
-                            alerts_trigger = pSession.check_posture_alert()
-                            logger.debug(f"alert trigger: {alerts_trigger}")
+                        #if sound_alert_on:
+                        alerts_trigger = pSession.check_posture_alert(trigger_sound=sound_alert_on) #
+                        logger.debug(f"alert trigger: {alerts_trigger}")
 
                     # Draw the pose annotation on the image.
                     image.flags.writeable = True
@@ -152,21 +162,19 @@ def main():
                     y_increment = 60
                     y_init = 400
                     font_scale = 1
-                    cv2.putText(img=image_flip, text=f"alert_on: {alert_on}", org=(0, y_init), 
+                    cv2.putText(img=image_flip, text=f"sound_alert_on: {sound_alert_on}", org=(0, y_init), 
                             fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
                     cv2.putText(img=image_flip, text=f"track_data_on: {track_data_on}", org=(0,y_init+y_increment), 
                             fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
 
                     # Flip the image horizontally for a selfie-view display.
-                    scale_percent = 50 # percent of original size
-                    width = int(image_flip.shape[1] * scale_percent / 100)
-                    height = int(image_flip.shape[0] * scale_percent / 100)
+                    width = int(image_flip.shape[1] * SCALE_PERCENT / 100)
+                    height = int(image_flip.shape[0] * SCALE_PERCENT / 100)
                     dim = (width, height)
-                    #cv2.imshow('MediaPipe Pose', cv2.resize(image_flip, dsize=dim, interpolation = cv2.INTER_AREA))
                     image_resized = cv2.resize(image_flip, dsize=dim, interpolation = cv2.INTER_AREA)
-                    cv2.imshow('Posture Monitor', image_resized)
-                    #cv2.setWindowProperty('Posture Monitor', cv2.WND_PROP_TOPMOST, 1)
-                    # leave app when click `esc` key
+                    cv2.imshow(WINDOW_NAME , image_resized)
+
+                    # idk why opencv doesn't work without it
                     if cv2.waitKey(5) & 0xFF == 27:
                         pSession.export_data()
                         break
@@ -182,14 +190,22 @@ if __name__ == '__main__':
                     default='small',
                     #const='all',
                     #nargs='?',
-                    choices=['small', 'median', 'large'],
+                    choices=['small', 'medium', 'large'],
                     help="windows size.")
     parser.add_argument('--track_basic_metric',
                     help="flag for tracking basic head + shoulder landmarks", action="store_true")
     # this should default true
-    parser.add_argument('--windows_on_top',
+    parser.add_argument('--window_on_top',
                     help="flag to determine if window is always on top of all other windows", action="store_true")
+    parser.add_argument('--sound_alert_on',
+                    help="flag to determine if alert is on", action="store_true")
     args = parser.parse_args()
+    sound_alert_on = args.sound_alert_on
+    WINDOW_ON_TOP = args.window_on_top
+    window_size_mapping = {
+        'small': 50,
+        'medium':100,
+        'large': 200
+    }
+    SCALE_PERCENT = window_size_mapping[args.window_size]
     main()
-
-    # run main
