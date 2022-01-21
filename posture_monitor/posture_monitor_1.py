@@ -14,7 +14,7 @@ from posture_monitor.src.PostureAlertRule import *
 from posture_monitor.src.PostureMetricTs import *
 
 
-from posture_monitor.src.util import calculate_landmark_line, get_time
+from posture_monitor.src.util import calculate_landmark_line, get_time, create_basic_landmarks
 from posture_monitor.src.PostureSession import PostureSession
 
 from posture_monitor.session_config import posture_session_args
@@ -81,11 +81,15 @@ def on_press_loop(key):
 def main():
     global SCALE_PERCENT
     global WINDOW_ON_TOP
+    global TRACK_BASIC_LANDMARK
     mp_drawing = mp.solutions.drawing_utils
     mp_drawing_styles = mp.solutions.drawing_styles
     mp_pose = mp.solutions.pose 
 
     font = cv2.FONT_HERSHEY_SIMPLEX
+    if TRACK_BASIC_LANDMARK:
+        basic_landmarks_metriTS_dict = create_basic_landmarks()
+        posture_session_args['metricTsDict'].update(basic_landmarks_metriTS_dict)
     pSession = PostureSession(**posture_session_args, data_dir="test_dir")
     
     cap = cv2.VideoCapture(0)
@@ -192,16 +196,17 @@ if __name__ == '__main__':
                     #nargs='?',
                     choices=['small', 'medium', 'large'],
                     help="windows size.")
-    parser.add_argument('--track_basic_metric',
+    parser.add_argument('--track_basic_landmark',
                     help="flag for tracking basic head + shoulder landmarks", action="store_true")
     # this should default true
-    parser.add_argument('--window_on_top',
+    parser.add_argument('--window_stay_top',
                     help="flag to determine if window is always on top of all other windows", action="store_true")
     parser.add_argument('--sound_alert_on',
                     help="flag to determine if alert is on", action="store_true")
     args = parser.parse_args()
     sound_alert_on = args.sound_alert_on
-    WINDOW_ON_TOP = args.window_on_top
+    WINDOW_ON_TOP = args.window_stay_top
+    TRACK_BASIC_LANDMARK = args.track_basic_landmark
     window_size_mapping = {
         'small': 50,
         'medium':100,
