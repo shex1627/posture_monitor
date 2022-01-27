@@ -10,7 +10,7 @@ import pickle
 import json
 import numpy as np
 import threading
-import winsound
+import simpleaudio as sa
 import logging
 import json
 import threading
@@ -64,7 +64,9 @@ class PostureSession:
             now = get_time()
             if now - self._last_alert_time > 1:
                 self._last_alert_time = now 
-                winsound.PlaySound(alert_sound_file, winsound.SND_ASYNC |  winsound.SND_FILENAME) #
+                #winsound.PlaySound(alert_sound_file, winsound.SND_ASYNC |  winsound.SND_FILENAME) #
+                wave_obj = sa.WaveObject.from_wave_file(alert_sound_file)
+                play_obj = wave_obj.play()
 
         def check_posture_alert(self, trigger_sound=True) -> List[str]:
             """ return any alerts that is triggered."""

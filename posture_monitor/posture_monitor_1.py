@@ -24,7 +24,7 @@ stdout_handler = logging.StreamHandler(sys.stdout)
 handlers = [file_handler, stdout_handler]
 
 logging.basicConfig(
-    level=logging.DEBUG, 
+    level=logging.INFO, 
     format='%(asctime)s|%(name)s|%(levelname)s|%(message)s',
     handlers=handlers
 )
@@ -136,6 +136,8 @@ def main():
                         landmark_lst = results.pose_landmarks.ListFields()[0][1]
                         if track_data_on:
                             pSession.update_metrics(landmark_lst)
+                            
+                            logger.info(f"headdown: {min(landmark_lst[6].y, landmark_lst[3].y)}")
 
                         #if sound_alert_on:
                         alerts_trigger = pSession.check_posture_alert(trigger_sound=sound_alert_on) #
