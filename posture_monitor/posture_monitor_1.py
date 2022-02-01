@@ -17,7 +17,7 @@ from posture_monitor.src.PostureMetricTs import *
 from posture_monitor.src.util import calculate_landmark_line, get_time, create_basic_landmarks
 from posture_monitor.src.PostureSession import PostureSession
 
-from posture_monitor.session_config import posture_session_args
+from posture_monitor.session_config import posture_session_args, HEAD_LEVEL_THRESHOLD, SHOULDER_TILT_THRESHOLD
 
 file_handler = logging.FileHandler(filename=f'logs/posture_monitor/posture_monitor_{int(time.time())}.log')
 stdout_handler = logging.StreamHandler(sys.stdout)
@@ -31,6 +31,8 @@ logging.basicConfig(
 logger = logging.getLogger('posture_monitor')
 
 # variable and functions for toggle feature
+POSTURE_DATA_DIR = 'posture_data'
+
 WINDOW_NAME = "Posture Monitor"
 SCALE_PERCENT = 100
 WINDOW_ON_TOP = True
@@ -90,7 +92,7 @@ def main():
     if TRACK_BASIC_LANDMARK:
         basic_landmarks_metriTS_dict = create_basic_landmarks()
         posture_session_args['metricTsDict'].update(basic_landmarks_metriTS_dict)
-    pSession = PostureSession(**posture_session_args, data_dir="test_dir")
+    pSession = PostureSession(**posture_session_args, data_dir=POSTURE_DATA_DIR)
     
     cap = cv2.VideoCapture(0)
     while program_on:
@@ -139,9 +141,8 @@ def main():
                             
                             logger.info(f"headdown: {min(landmark_lst[6].y, landmark_lst[3].y)}")
 
-                        #if sound_alert_on:
-                        alerts_trigger = pSession.check_posture_alert(trigger_sound=sound_alert_on) #
-                        logger.debug(f"alert trigger: {alerts_trigger}")
+                            alerts_trigger = pSession.check_posture_alert(trigger_sound=sound_alert_on) #
+                            logger.debug(f"alert trigger: {alerts_trigger}")
 
                     # Draw the pose annotation on the image.
                     image.flags.writeable = True
@@ -168,6 +169,25 @@ def main():
                     y_increment = 60
                     y_init = 400
                     font_scale = 1
+
+                    # if_good_posture = pSession.metrics['good_posture'].get_past_data(seconds=1)[0]
+                    # # metricTsDict = pSession.metrics
+                    # # shoulder_tilt_metric = metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0]
+                    # # headdown_metric = metricTsDict['headdown'].get_past_data(seconds=1)[0]
+                    # # bad_posture = [metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0] > SHOULDER_TILT_THRESHOLD,
+                    # #         metricTsDict['headdown'].get_past_data(seconds=1)[0] > HEAD_LEVEL_THRESHOLD]
+                    # metric_to_display = {
+                    #     # 'shoulder_tilt': np.round(shoulder_tilt_metric, 2),
+                    #     # 'headdown': np.round(headdown_metric, 2),
+                    #     # 'bad_posture': bad_posture,
+                    #     'good_posture': if_good_posture
+                    # }
+                    # i_counter = 1
+                    # for name, value in metric_to_display.items():
+                    #     cv2.putText(img=image_flip, text=f"{name}: {value}", org=(0, y_init-i_counter*y_increment), 
+                    #         fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
+                    #     i_counter += 1
+
                     cv2.putText(img=image_flip, text=f"sound_alert_on: {sound_alert_on}", org=(0, y_init), 
                             fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
                     cv2.putText(img=image_flip, text=f"track_data_on: {track_data_on}", org=(0,y_init+y_increment), 

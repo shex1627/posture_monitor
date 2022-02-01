@@ -27,7 +27,7 @@ class PostureSession:
 
         def __init__(self, metricTsDict: Dict[str, PostureMetricTs], alertRules: List[PostureAlertRule], 
         config_datapath=None, data_dir=None, 
-        data_export_min=15) -> None:
+        data_export_min=1) -> None:
             self.metrics = metricTsDict
             self.alertRules = alertRules
             self._last_alert_time = 0
@@ -52,7 +52,7 @@ class PostureSession:
                     metric.update(landmarks)
             now = get_time()
             # to-do update this to use data_export_min parameter
-            if export_data and self.data_dir and (now - self.last_data_export_time) > 10:
+            if export_data and self.data_dir and (now - self.last_data_export_time) > self.data_export_min * 60:
                 logger.debug(f"current session dir: {self.session_data_dir}")
                 th = threading.Thread(target=self.export_data)
                 th.start()
