@@ -31,7 +31,7 @@ logging.basicConfig(
 logger = logging.getLogger('posture_monitor')
 
 # variable and functions for toggle feature
-POSTURE_DATA_DIR = 'posture_data'
+POSTURE_DATA_DIR = 'keyboard_posture_data'
 
 WINDOW_NAME = "Posture Monitor"
 SCALE_PERCENT = 100
@@ -166,7 +166,6 @@ def main():
                         #center = (int(landmark_lst[16].x * image_flip.shape[1]), int(landmark_lst[16].y* image_flip.shape[0]))
                         center = (int(right_wrist_reflection_x * image_flip.shape[1]), int(landmark_lst[16].y* image_flip.shape[0]))
                         #print(center)
-                        time.sleep(0.2)
                         print(f"left_wrist_x_pos: {landmark_lst[15].x}, reflection point x: {right_wrist_reflection_x}")
                         print(f"right_wrist_x_pos: {landmark_lst[16].x}, right_wrist_y_pos: {landmark_lst[16].y}")
                         print(f"x_diff {np.round(np.abs(right_wrist_reflection_x-landmark_lst[15].x), 2)}")
@@ -193,24 +192,6 @@ def main():
                     y_increment = 60
                     y_init = 400
                     font_scale = 1
-
-                    # if_good_posture = pSession.metrics['good_posture'].get_past_data(seconds=1)[0]
-                    # # metricTsDict = pSession.metrics
-                    # # shoulder_tilt_metric = metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0]
-                    # # headdown_metric = metricTsDict['headdown'].get_past_data(seconds=1)[0]
-                    # # bad_posture = [metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0] > SHOULDER_TILT_THRESHOLD,
-                    # #         metricTsDict['headdown'].get_past_data(seconds=1)[0] > HEAD_LEVEL_THRESHOLD]
-                    # metric_to_display = {
-                    #     # 'shoulder_tilt': np.round(shoulder_tilt_metric, 2),
-                    #     # 'headdown': np.round(headdown_metric, 2),
-                    #     # 'bad_posture': bad_posture,
-                    #     'good_posture': if_good_posture
-                    # }
-                    # i_counter = 1
-                    # for name, value in metric_to_display.items():
-                    #     cv2.putText(img=image_flip, text=f"{name}: {value}", org=(0, y_init-i_counter*y_increment), 
-                    #         fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
-                    #     i_counter += 1
 
                     cv2.putText(img=image_flip, text=f"sound_alert_on: {sound_alert_on}", org=(0, y_init), 
                             fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)

@@ -10,7 +10,7 @@ from posture_monitor.src.PostureSession import PostureSession
 PACKAGE_VERSION = (0, 0, 1)
 CONFIG_VERSION = (0, 0, 1)
 
-HEAD_LEVEL_THRESHOLD = 0.25
+HEAD_LEVEL_THRESHOLD = 0.35#0.25
 SHOULDER_TILT_THRESHOLD = 0.02
 
 # to-do, make all those configurations templates, or initialize those somewhere else
