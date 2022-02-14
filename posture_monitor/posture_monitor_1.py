@@ -148,10 +148,10 @@ def main():
                     image.flags.writeable = True
                     image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
                     mp_drawing.draw_landmarks(
-                        image,
-                        results.pose_landmarks,
-                        mp_pose.POSE_CONNECTIONS,
-                        landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
+                       image,
+                       results.pose_landmarks,
+                       mp_pose.POSE_CONNECTIONS,
+                       landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
                     
                     image_flip = cv2.flip(image, 1)
                     #
@@ -166,27 +166,27 @@ def main():
                             fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=6, lineType=cv2.LINE_AA)
                     
                     # show on windows if tracking and alert are on
-                    y_increment = 60
+                    
                     y_init = 400
                     font_scale = 1
-
+                    y_increment = 40 
+                    
                     # if_good_posture = pSession.metrics['good_posture'].get_past_data(seconds=1)[0]
-                    # # metricTsDict = pSession.metrics
+                    metricTsDict = pSession.metrics
                     # # shoulder_tilt_metric = metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0]
                     # # headdown_metric = metricTsDict['headdown'].get_past_data(seconds=1)[0]
                     # # bad_posture = [metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0] > SHOULDER_TILT_THRESHOLD,
                     # #         metricTsDict['headdown'].get_past_data(seconds=1)[0] > HEAD_LEVEL_THRESHOLD]
-                    # metric_to_display = {
-                    #     # 'shoulder_tilt': np.round(shoulder_tilt_metric, 2),
-                    #     # 'headdown': np.round(headdown_metric, 2),
-                    #     # 'bad_posture': bad_posture,
-                    #     'good_posture': if_good_posture
-                    # }
-                    # i_counter = 1
-                    # for name, value in metric_to_display.items():
-                    #     cv2.putText(img=image_flip, text=f"{name}: {value}", org=(0, y_init-i_counter*y_increment), 
-                    #         fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
-                    #     i_counter += 1
+                    shift_metric_name_lst = ['left_eye_shoulder_x_diff', "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"] #, "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"
+                    metric_to_display = { 
+                        metric_name: np.round(metricTsDict[metric_name].get_past_data(seconds=1)[0], 2)
+                        for metric_name in shift_metric_name_lst
+                    }
+                    i_counter = 1
+                    for name, value in metric_to_display.items():
+                        cv2.putText(img=image_flip, text=f"{name}: {value}", org=(0, y_init-i_counter*y_increment), 
+                            fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
+                        i_counter += 1
 
                     cv2.putText(img=image_flip, text=f"sound_alert_on: {sound_alert_on}", org=(0, y_init), 
                             fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
@@ -197,6 +197,7 @@ def main():
                     width = int(image_flip.shape[1] * SCALE_PERCENT / 100)
                     height = int(image_flip.shape[0] * SCALE_PERCENT / 100)
                     dim = (width, height)
+                    print(dim)
                     image_resized = cv2.resize(image_flip, dsize=dim, interpolation = cv2.INTER_AREA)
                     cv2.imshow(WINDOW_NAME , image_resized)
 

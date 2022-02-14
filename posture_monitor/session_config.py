@@ -4,7 +4,7 @@ from posture_monitor.src.util import get_time
 from posture_monitor.src.PostureAlertRule import *
 from posture_monitor.src.PostureMetricTs import *
 
-from posture_monitor.src.util import calculate_landmark_line, get_time
+from posture_monitor.src.util import calculate_landmark_line, get_time, landmark_3d_dist
 from posture_monitor.src.PostureSession import PostureSession
 
 PACKAGE_VERSION = (0, 0, 1)
@@ -12,6 +12,8 @@ CONFIG_VERSION = (0, 0, 1)
 
 HEAD_LEVEL_THRESHOLD = 0.35#0.25
 SHOULDER_TILT_THRESHOLD = 0.02
+HEAD_SHIFT_THRESHOLD = 0.
+SHOULDER_TILT_THRESHOLD
 
 # to-do, make all those configurations templates, or initialize those somewhere else
 headdown_metric = PostureMetricTs("headdown", metric_func=lambda landmarks: min(landmarks[6].y, landmarks[3].y))
@@ -42,6 +44,18 @@ good_posture = PostureSubMetricTs("good_posture", metric_func=lambda metricTsDic
     metricTsDict['headdown'].get_past_data(seconds=1)[0] > HEAD_LEVEL_THRESHOLD,
 ])))
 
+
+right_eye_shoulder_x_diff = PostureMetricTs("right_eye_shoulder_x_diff", metric_func=lambda landmarks: np.abs(landmarks[6].x - landmarks[12].x))#np.abs(landmarks[6].z - landmarks[12].z)landmark_3d_dist(landmarks[6], landmarks[12])
+left_eye_shoulder_x_diff =  PostureMetricTs("left_eye_shoulder_x_diff", metric_func=lambda landmarks: np.abs(landmarks[3].x - landmarks[11].x)) #landmarks[3].x - landmarks[11].x)landmark_3d_dist(landmarks[3], landmarks[11])
+right_shoulder_elbow_x_diff = PostureMetricTs("right_shoulder_elbow_x_diff", metric_func=lambda landmarks: np.abs(landmarks[12].x - landmarks[14].x))
+left_shoulder_elbow_x_diff = PostureMetricTs("left_shoulder_elbow_x_diff", metric_func=lambda landmarks: np.abs(landmarks[11].x - landmarks[13].x))
+
+head_shift_alert = if_metric_fail_avg_and_last_second("left_eye_shoulder_x_diff", lambda level_diff: level_diff > SHOULDER_TILT_THRESHOLD, seconds=3, percent=1.00)
+body_shift_alert = if_metric_fail_avg_and_last_second("eft_shoulder_elbow_x_diff", lambda level_diff: level_diff > SHOULDER_TILT_THRESHOLD, seconds=3, percent=1.00)
+
+shift_metric_lst = [left_eye_shoulder_x_diff, right_eye_shoulder_x_diff, left_shoulder_elbow_x_diff, right_shoulder_elbow_x_diff]
+shift_metric_dict = {metric.name: metric for metric in shift_metric_lst}
+
 metricTsDict = {    
     headdown_metric.name: headdown_metric,
     headdown_10_seconds.name: headdown_10_seconds,
@@ -54,6 +68,8 @@ metricTsDict = {
     shoulder_tilt_seconds.name: shoulder_tilt_seconds,
     good_posture.name: good_posture
 }
+
+metricTsDict.update(shift_metric_dict)
 
 from pathlib import Path
 config_file_path = os.path.abspath(__file__)
