@@ -51,10 +51,20 @@ right_shoulder_elbow_x_diff = PostureMetricTs("right_shoulder_elbow_x_diff", met
 left_shoulder_elbow_x_diff = PostureMetricTs("left_shoulder_elbow_x_diff", metric_func=lambda landmarks: np.abs(landmarks[11].x - landmarks[13].x))
 
 head_shift_alert = if_metric_fail_avg_and_last_second("left_eye_shoulder_x_diff", lambda level_diff: level_diff > SHOULDER_TILT_THRESHOLD, seconds=3, percent=1.00)
-body_shift_alert = if_metric_fail_avg_and_last_second("eft_shoulder_elbow_x_diff", lambda level_diff: level_diff > SHOULDER_TILT_THRESHOLD, seconds=3, percent=1.00)
+body_shift_alert = if_metric_fail_avg_and_last_second("left_shoulder_elbow_x_diff", lambda level_diff: level_diff > SHOULDER_TILT_THRESHOLD, seconds=3, percent=1.00)
 
 shift_metric_lst = [left_eye_shoulder_x_diff, right_eye_shoulder_x_diff, left_shoulder_elbow_x_diff, right_shoulder_elbow_x_diff]
 shift_metric_dict = {metric.name: metric for metric in shift_metric_lst}
+
+infront_computer = PostureMetricTs("infront_computer", metric_func=lambda landmarks: 
+    (landmarks[1].y <= 2 and landmarks[1].y >=0.2) and 
+    (landmarks[4].y <= 2 and landmarks[4].y >=0.2) and
+    (landmarks[1].z < -0.5 and landmarks[4].z <-0.5),
+    fillna=-1
+    )
+infront_computer_for_30_func = if_metric_fail_avg_and_last_second("infront_computer", lambda infront_computer: infront_computer > 0, seconds=60*30, percent=60*30*0.90)
+infront_computer_for_30 = PostureSubMetricTs("infront_computer_30min", infront_computer_for_30_func)
+infront_computer_for_30_alert = PostureKDeltaAlert("infront_computer_30min", infront_computer_for_30, 1)
 
 metricTsDict = {    
     headdown_metric.name: headdown_metric,
@@ -66,7 +76,9 @@ metricTsDict = {
     rightshoulder_down_10_seconds.name: rightshoulder_down_10_seconds,
     left_right_shoulder_y_diff.name: left_right_shoulder_y_diff,
     shoulder_tilt_seconds.name: shoulder_tilt_seconds,
-    good_posture.name: good_posture
+    good_posture.name: good_posture,
+    infront_computer.name: infront_computer,
+    infront_computer_for_30.name: infront_computer_for_30
 }
 
 metricTsDict.update(shift_metric_dict)
@@ -76,6 +88,6 @@ config_file_path = os.path.abspath(__file__)
 
 posture_session_args = {
     'metricTsDict': metricTsDict,
-    'alertRules': [headdown_alert, shoulder_tilt_alert],
+    'alertRules': [headdown_alert, shoulder_tilt_alert, infront_computer_for_30_alert],
     'config_datapath':config_file_path
 }

@@ -112,7 +112,7 @@ def main():
                     cap = cv2.VideoCapture(0)
 
             with mp_pose.Pose(
-                min_detection_confidence=0.5,
+                min_detection_confidence=0.8,
                 min_tracking_confidence=0.5) as pose:
                 while camera_on and cap.isOpened():
                     
@@ -155,7 +155,16 @@ def main():
                     
                     image_flip = cv2.flip(image, 1)
                     #
-                    if results.pose_landmarks and alerts_trigger:
+                    #logging.info(f"infront computer: {pSession.metrics['infront_computer'].get_past_data(seconds=1)[0]}")
+                    if track_data_on and (pSession.metrics['infront_computer'].get_past_data(seconds=1)[0] <= 0): 
+                        image_flip = cv2.cvtColor(image_flip, cv2.COLOR_BGR2GRAY)
+                        y_increment = 120
+                        y_init = 100# - y_increment
+                        font_scale = 2
+                        cv2.putText(img=image_flip, text="away from desk", org=(100,y_init), 
+                            fontFace=font, 	fontScale=font_scale, color=(0, 0, 255), thickness=6, lineType=cv2.LINE_AA)
+
+                    elif results.pose_landmarks and alerts_trigger:
                         y_increment = 120
                         y_init = 100# - y_increment
                         font_scale = 2.5

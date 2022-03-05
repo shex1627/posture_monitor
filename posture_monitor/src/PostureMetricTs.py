@@ -72,16 +72,24 @@ class PostureMetricTs:
         metric_filepath = os.path.join(data_dir, self.name+".json")
         # load historical data if exist
         if os.path.exists(metric_filepath):
+            logging.info(f"found data path {metric_filepath}")
             with open(metric_filepath, 'r') as infile:
                 historical_data = json.load(infile)
         else:
+            logging.critical(f"could not load historical data from{metric_filepath}")
             historical_data = defaultdict(lambda : self.fillna)
+
         # update with latest data
         current_data = {str(ts): value for ts, value in self.second_to_avg_frame_scores.items()}
-        historical_data.update(current_data)
+
+        # historical_data.update(current_data)
+        current_data.update(historical_data)
+        current_data = sorted(current_data.items())
+
         # dump updated data
         with open(metric_filepath, 'w') as outfile:
-            json.dump(historical_data, outfile, indent=4)
+            #json.dump(historical_data, outfile, indent=4)
+            json.dump(current_data, outfile, indent=4)
         # reset data
         self.reset_data()
 
