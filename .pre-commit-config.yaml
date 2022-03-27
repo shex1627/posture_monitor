@@ -1,0 +1,7 @@
+-   repo: local
+    hooks:
+    -   id: notebook_style_check
+        name: notebook_style_check
+        entry: python ./notebook_style_check.py
+        language: python
+        files: '.*\.ipynb'
