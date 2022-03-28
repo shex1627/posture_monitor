@@ -15,7 +15,7 @@ def find_keywords_in_notebook_json(notebook_json: dict, keywords: list=\
                 keywords_found[keyword] = True
     return all(keywords_found.values())
 
-print(f"{sys.argv[1:]}")
+#print(f"{sys.argv[1:]}")
 file_paths = sys.argv[1:]
 
 notebook_failed_style_checks = []
@@ -26,9 +26,11 @@ for notebook_file_path in file_paths:
     if not notebook_style_check_result:
         notebook_failed_style_checks.append(notebook_file_path)
 
+import pprint
 if notebook_failed_style_checks:
     print("the following notebooks failed style checks")
-    print(notebook_failed_style_checks)
+    # todo: do a pprint of all the notebooks that failed style check
+    pprint.pprint(notebook_failed_style_checks)
     sys.exit(1)
 else:
     sys.exit(0)
