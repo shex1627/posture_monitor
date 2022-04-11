@@ -5,6 +5,7 @@ import sys
 import time
 import numpy as np
 import os
+from pathlib import Path
 from posture_monitor.src.util import get_time
 from pynput.keyboard import Listener
 from pynput.keyboard import Key
@@ -31,14 +32,15 @@ logging.basicConfig(
 logger = logging.getLogger('posture_monitor')
 
 # variable and functions for toggle feature
-POSTURE_DATA_DIR = 'posture_data'
+POSTURE_DATA_DIR = 'posture_data' 
+#POSTURE_DATA_DIR = os.path.join(Path(__file__).resolve().parents[0], "posture_data")
 
 WINDOW_NAME = "Posture Monitor"
 SCALE_PERCENT = 100
 WINDOW_ON_TOP = True
 camera_on = True
 sound_alert_on = True
-track_data_on = False
+track_data_on = True
 program_on = True
 KEY_ALERT_TOGGLE = Key.f6
 KEY_TRACK_DATA_TOGGLE = Key.f7

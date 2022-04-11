@@ -76,7 +76,7 @@ class PostureMetricTs:
             with open(metric_filepath, 'r') as infile:
                 historical_data = json.load(infile)
         else:
-            logging.critical(f"could not load historical data from{metric_filepath}")
+            logging.info(f"could not find historical data from {metric_filepath}")
             historical_data = defaultdict(lambda : self.fillna)
 
         # update with latest data
