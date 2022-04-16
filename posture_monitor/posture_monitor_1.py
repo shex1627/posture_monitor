@@ -85,6 +85,7 @@ def on_press_loop(key):
         logging.info(f"exiting program")
         return True
 
+
 def main():
     global SCALE_PERCENT
     global WINDOW_ON_TOP
@@ -111,6 +112,7 @@ def main():
             else:
                 cv2.namedWindow(WINDOW_NAME , cv2.WINDOW_AUTOSIZE)
                 cv2.moveWindow(WINDOW_NAME , 20,20)
+
                 if WINDOW_ON_TOP:
                     cv2.setWindowProperty(WINDOW_NAME , cv2.WND_PROP_TOPMOST, 1)
                 if not cap.isOpened():
@@ -193,7 +195,7 @@ def main():
                     # show on windows if tracking and alert are on
                     
                     y_init = 400
-                    font_scale = 1
+                    font_scale = 0.8
                     y_increment = 40 
                     
                     # if_good_posture = pSession.metrics['good_posture'].get_past_data(seconds=1)[0]
@@ -202,15 +204,27 @@ def main():
                     # # headdown_metric = metricTsDict['headdown'].get_past_data(seconds=1)[0]
                     # # bad_posture = [metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0] > SHOULDER_TILT_THRESHOLD,
                     # #         metricTsDict['headdown'].get_past_data(seconds=1)[0] > HEAD_LEVEL_THRESHOLD]
-                    shift_metric_name_lst = []#['left_eye_shoulder_x_diff', "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"] #, "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"
+                    shift_metric_name_lst = ['left_eye_shoulder_x_diff', "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"] #, "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"
+                    # metric_to_display = { 
+                    #     metric_name: np.round(metricTsDict[metric_name].get_past_data(seconds=1)[0], 2)
+                    #     for metric_name in shift_metric_name_lst
+                    # }
                     metric_to_display = { 
                         metric_name: np.round(metricTsDict[metric_name].get_past_data(seconds=1)[0], 2)
-                        for metric_name in shift_metric_name_lst
+                        for metric_name in metricTsDict.keys()
                     }
                     i_counter = 1
+                    metric_window_img = np.zeros([1080, 1920,3],dtype=np.uint8)
+                    metric_max_width, metric_max_height = 500, 40
+                    max_metric_per_row = int(1920 // metric_max_width)
+                    metric_window_img.fill(255)
                     for name, value in metric_to_display.items():
-                        cv2.putText(img=image_flip, text=f"{name}: {value}", org=(0, y_init-i_counter*y_increment), 
-                            fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
+                        x_offset, y_offset = i_counter % max_metric_per_row, i_counter // max_metric_per_row
+                        x_corr, y_corr = x_offset * metric_max_width, y_offset * metric_max_height + 40
+
+                        logger.debug(f"name: {name}, counter:{i_counter}. offset: {(x_offset, y_offset)},  {(x_corr, y_corr)}")
+                        cv2.putText(img=metric_window_img, text=f"{name}: {value}", org=(x_corr, y_corr), 
+                            fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
                         i_counter += 1
 
                     cv2.putText(img=image_flip, text=f"sound_alert_on: {sound_alert_on}", org=(0, y_init), 
@@ -230,6 +244,10 @@ def main():
                     if cv2.waitKey(5) & 0xFF == 27:
                         pSession.export_data()
                         break
+
+                    # new thing to display metrics
+
+                    cv2.imshow("metricsWindow", metric_window_img)
             
     #cap.release()
     pSession.export_data()
