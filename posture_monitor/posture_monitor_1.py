@@ -38,6 +38,8 @@ POSTURE_DATA_DIR = 'posture_data'
 #POSTURE_DATA_DIR = os.path.join(Path(__file__).resolve().parents[0], "posture_data")
 
 WINDOW_NAME = "Posture Monitor"
+METRIC_WINDOW_NAME = "Metric Window"
+METRIC_WINDOW_ON = False
 SCALE_PERCENT = 100
 WINDOW_ON_TOP = True
 camera_on = True
@@ -47,6 +49,7 @@ program_on = True
 KEY_ALERT_TOGGLE = Key.f6
 KEY_TRACK_DATA_TOGGLE = Key.f7
 KEY_CAMERA_TOGGLE = Key.f8
+KEY_METRIC_WINDOW_TOGGLE = Key.f9
 KEY_EXIT = Key.f4
 DATA_EXPORT_MIN = 30
 
@@ -56,6 +59,7 @@ def on_press_loop(key):
     global track_data_on
     global camera_on
     global program_on
+    global METRIC_WINDOW_ON
 
     if key == KEY_TRACK_DATA_TOGGLE:
         """turn off alert if data tracking is off."""
@@ -75,6 +79,7 @@ def on_press_loop(key):
     
     if key == KEY_CAMERA_TOGGLE:
         camera_on = not camera_on
+        METRIC_WINDOW_ON = False
         logging.info(f"camera toggle to {camera_on}")
         return True
 
@@ -82,7 +87,14 @@ def on_press_loop(key):
         """turn off camera before program exits"""
         camera_on = not camera_on
         program_on = False
+        METRIC_WINDOW_ON = False
         logging.info(f"exiting program")
+        return True
+
+    if key == KEY_METRIC_WINDOW_TOGGLE:
+        """turn on and off metric window"""
+        METRIC_WINDOW_ON = not METRIC_WINDOW_ON
+        logging.info(f"metric window toggle to {METRIC_WINDOW_ON}")
         return True
 
 
@@ -112,6 +124,9 @@ def main():
             else:
                 cv2.namedWindow(WINDOW_NAME , cv2.WINDOW_AUTOSIZE)
                 cv2.moveWindow(WINDOW_NAME , 20,20)
+                #if METRIC_WINDOW_ON:
+                #    logging.info("creating metric window")
+                #    cv2.namedWindow(METRIC_WINDOW_NAME , cv2.WINDOW_AUTOSIZE)
 
                 if WINDOW_ON_TOP:
                     cv2.setWindowProperty(WINDOW_NAME , cv2.WND_PROP_TOPMOST, 1)
@@ -161,7 +176,6 @@ def main():
                        landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style())
                     
                     image_flip = cv2.flip(image, 1)
-                    #
                     
                     if_away_desk = pSession.metrics['infront_computer'].get_past_data(seconds=1)[0] <= 0
                     infront_computer_past_data = pSession.metrics['infront_computer'].get_past_data(seconds=INFRONT_COMPUTER_MIN*60)
@@ -197,39 +211,40 @@ def main():
                     y_init = 400
                     font_scale = 0.8
                     y_increment = 40 
-                    
-                    # if_good_posture = pSession.metrics['good_posture'].get_past_data(seconds=1)[0]
+                    ####
+                    # display metrics window
+                    ####
                     metricTsDict = pSession.metrics
-                    # # shoulder_tilt_metric = metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0]
-                    # # headdown_metric = metricTsDict['headdown'].get_past_data(seconds=1)[0]
-                    # # bad_posture = [metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0] > SHOULDER_TILT_THRESHOLD,
-                    # #         metricTsDict['headdown'].get_past_data(seconds=1)[0] > HEAD_LEVEL_THRESHOLD]
-                    shift_metric_name_lst = ['left_eye_shoulder_x_diff', "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"] #, "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"
-                    # metric_to_display = { 
-                    #     metric_name: np.round(metricTsDict[metric_name].get_past_data(seconds=1)[0], 2)
-                    #     for metric_name in shift_metric_name_lst
-                    # }
                     metric_to_display = { 
                         metric_name: np.round(metricTsDict[metric_name].get_past_data(seconds=1)[0], 2)
                         for metric_name in metricTsDict.keys()
                     }
-                    i_counter = 1
-                    metric_window_img = np.zeros([1080, 1920,3],dtype=np.uint8)
-                    metric_max_width, metric_max_height = 500, 40
-                    max_metric_per_row = int(1920 // metric_max_width)
-                    metric_window_img.fill(255)
-                    for name, value in metric_to_display.items():
-                        x_offset, y_offset = i_counter % max_metric_per_row, i_counter // max_metric_per_row
-                        x_corr, y_corr = x_offset * metric_max_width, y_offset * metric_max_height + 40
+                    if METRIC_WINDOW_ON:
+                        i_counter = 1
+                        metric_window_img = np.zeros([1080, 1920,3],dtype=np.uint8)
+                        metric_max_width, metric_max_height = 500, 40
+                        max_metric_per_row = int(1920 // metric_max_width)
+                        metric_window_img.fill(255)
+                        for name, value in metric_to_display.items():
+                            x_offset, y_offset = i_counter % max_metric_per_row, i_counter // max_metric_per_row
+                            x_corr, y_corr = x_offset * metric_max_width, y_offset * metric_max_height + 40
 
-                        logger.debug(f"name: {name}, counter:{i_counter}. offset: {(x_offset, y_offset)},  {(x_corr, y_corr)}")
-                        cv2.putText(img=metric_window_img, text=f"{name}: {value}", org=(x_corr, y_corr), 
-                            fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
-                        i_counter += 1
+                            logger.debug(f"name: {name}, counter:{i_counter}. offset: {(x_offset, y_offset)},  {(x_corr, y_corr)}")
+                            cv2.putText(img=metric_window_img, text=f"{name}: {value}", org=(x_corr, y_corr), 
+                                fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
+                            i_counter += 1
+                        # new thing to display metrics
+                        cv2.imshow(METRIC_WINDOW_NAME, metric_window_img)
+                    elif cv2.getWindowProperty(METRIC_WINDOW_NAME, cv2.WND_PROP_VISIBLE) >= 1:
+                            logging.info("destroying window")
+                            cv2.destroyWindow(METRIC_WINDOW_NAME)
+
 
                     cv2.putText(img=image_flip, text=f"sound_alert_on: {sound_alert_on}", org=(0, y_init), 
                             fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
                     cv2.putText(img=image_flip, text=f"track_data_on: {track_data_on}", org=(0,y_init+y_increment), 
+                            fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
+                    cv2.putText(img=image_flip, text=f"metric_window_on: {METRIC_WINDOW_ON}", org=(0,y_init+2*y_increment), 
                             fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=4, lineType=cv2.LINE_AA)
 
                     # Flip the image horizontally for a selfie-view display.
@@ -245,9 +260,7 @@ def main():
                         pSession.export_data()
                         break
 
-                    # new thing to display metrics
-
-                    cv2.imshow("metricsWindow", metric_window_img)
+                    
             
     #cap.release()
     pSession.export_data()
