@@ -4,6 +4,7 @@ import logging
 import sys
 import time
 import numpy as np
+import pandas as pd
 import os
 from pathlib import Path
 from posture_monitor.src.util import get_time
@@ -13,12 +14,13 @@ from pynput import keyboard
 import argparse
 from posture_monitor.src.PostureAlertRule import *
 from posture_monitor.src.PostureMetricTs import *
+from pprint import pprint
 
 
 from posture_monitor.src.util import calculate_landmark_line, get_time, create_basic_landmarks
 from posture_monitor.src.PostureSession import PostureSession
 
-from posture_monitor.session_config import posture_session_args, HEAD_LEVEL_THRESHOLD, SHOULDER_TILT_THRESHOLD
+from posture_monitor.session_config import INFRONT_COMPUTER_MIN, posture_session_args, HEAD_LEVEL_THRESHOLD, SHOULDER_TILT_THRESHOLD
 
 file_handler = logging.FileHandler(filename=f'logs/posture_monitor/posture_monitor_{int(time.time())}.log')
 stdout_handler = logging.StreamHandler(sys.stdout)
@@ -46,6 +48,7 @@ KEY_ALERT_TOGGLE = Key.f6
 KEY_TRACK_DATA_TOGGLE = Key.f7
 KEY_CAMERA_TOGGLE = Key.f8
 KEY_EXIT = Key.f4
+DATA_EXPORT_MIN = 30
 
 
 def on_press_loop(key):
@@ -94,7 +97,7 @@ def main():
     if TRACK_BASIC_LANDMARK:
         basic_landmarks_metriTS_dict = create_basic_landmarks()
         posture_session_args['metricTsDict'].update(basic_landmarks_metriTS_dict)
-    pSession = PostureSession(**posture_session_args, data_dir=POSTURE_DATA_DIR)
+    pSession = PostureSession(**posture_session_args, data_dir=POSTURE_DATA_DIR, data_export_min=DATA_EXPORT_MIN)
     
     cap = cv2.VideoCapture(0)
     while program_on:
@@ -157,8 +160,19 @@ def main():
                     
                     image_flip = cv2.flip(image, 1)
                     #
-                    #logging.info(f"infront computer: {pSession.metrics['infront_computer'].get_past_data(seconds=1)[0]}")
-                    if track_data_on and (pSession.metrics['infront_computer'].get_past_data(seconds=1)[0] <= 0): 
+                    
+                    if_away_desk = pSession.metrics['infront_computer'].get_past_data(seconds=1)[0] <= 0
+                    infront_computer_past_data = pSession.metrics['infront_computer'].get_past_data(seconds=INFRONT_COMPUTER_MIN*60)
+                    logging.info("avg frame raw data value counts:")
+                    data_df = pd.DataFrame.from_dict(pSession.metrics['infront_computer'].second_to_avg_frame_scores, orient='index').tail(60)
+                    logging.info(f"{data_df[0].value_counts()}")
+                    logging.info(f"away desk: {if_away_desk}")
+                    logging.info(f"infront computer raw score distro:")
+                    logging.info(pd.Series(infront_computer_past_data).value_counts())
+                    infront_computer_past_data = list(map(lambda front_computer: front_computer >0,infront_computer_past_data))
+                    logging.info(f"infront computer sum score: {np.sum(infront_computer_past_data)}")
+                    logging.info(f"infront computer mean score: {np.mean(infront_computer_past_data)}")
+                    if track_data_on and if_away_desk: 
                         image_flip = cv2.cvtColor(image_flip, cv2.COLOR_BGR2GRAY)
                         y_increment = 120
                         y_init = 100# - y_increment
@@ -188,7 +202,7 @@ def main():
                     # # headdown_metric = metricTsDict['headdown'].get_past_data(seconds=1)[0]
                     # # bad_posture = [metricTsDict['left_right_shoulder_y_diff'].get_past_data(seconds=1)[0] > SHOULDER_TILT_THRESHOLD,
                     # #         metricTsDict['headdown'].get_past_data(seconds=1)[0] > HEAD_LEVEL_THRESHOLD]
-                    shift_metric_name_lst = ['left_eye_shoulder_x_diff', "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"] #, "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"
+                    shift_metric_name_lst = []#['left_eye_shoulder_x_diff', "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"] #, "right_eye_shoulder_x_diff", "left_shoulder_elbow_x_diff", "right_shoulder_elbow_x_diff"
                     metric_to_display = { 
                         metric_name: np.round(metricTsDict[metric_name].get_past_data(seconds=1)[0], 2)
                         for metric_name in shift_metric_name_lst

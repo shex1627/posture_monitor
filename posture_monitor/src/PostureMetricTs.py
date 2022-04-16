@@ -2,6 +2,7 @@ import time
 import os
 import json
 from typing import Callable, OrderedDict, List, Dict
+from xmlrpc.client import Boolean
 from posture_monitor.src.util import OrderedDefaultDict
 from collections import defaultdict
 import logging
@@ -132,6 +133,35 @@ def if_metric_fail_avg_and_last_second(
                 metricTsDict[metric_name].get_past_data(
                     seconds=1, 
                 transform=threshold_rule)
+        #logger.debug(f"last_second_match_threshold: {last_second_match_threshold}")
+        if last_second_match_threshold and last_second_match_threshold[0] == 1:
+            past_data_match_threshold = \
+                    metricTsDict[metric_name].get_past_data(seconds=
+                    seconds, transform=threshold_rule)
+            #logger.debug(f"past_data_match_threshold: {past_data_match_threshold }")
+            return last_second_match_threshold and np.mean(past_data_match_threshold) >= percent
+        return 0
+    return metric_func 
+
+def if_metric_fail_avg(
+    metric_name: str, 
+    threshold_rule: Callable[[float], int], 
+    seconds: int,
+    percent: float,
+    last_second: Boolean=True) -> Callable:
+    """
+    create a higher order function which the avg
+    """
+    def metric_func(metricTsDict: Dict[str, PostureMetricTs]) -> float:
+        #print(f"high order funct seconds {seconds}")
+        #logger.debug(f"metric data: {metricTsDict[metric_name].get_past_data(seconds=3)}")
+        if last_second:
+            last_second_match_threshold = \
+                    metricTsDict[metric_name].get_past_data(
+                        seconds=1, 
+                    transform=threshold_rule)
+        else:
+            last_second_match_threshold = [1]
         #logger.debug(f"last_second_match_threshold: {last_second_match_threshold}")
         if last_second_match_threshold and last_second_match_threshold[0] == 1:
             past_data_match_threshold = \

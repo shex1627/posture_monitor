@@ -14,6 +14,7 @@ HEAD_LEVEL_THRESHOLD = 0.35#0.25
 SHOULDER_TILT_THRESHOLD = 0.02
 HEAD_SHIFT_THRESHOLD = 0.
 SHOULDER_TILT_THRESHOLD
+INFRONT_COMPUTER_MIN = 20
 
 # to-do, make all those configurations templates, or initialize those somewhere else
 headdown_metric = PostureMetricTs("headdown", metric_func=lambda landmarks: min(landmarks[6].y, landmarks[3].y))
@@ -60,9 +61,11 @@ infront_computer = PostureMetricTs("infront_computer", metric_func=lambda landma
     (landmarks[1].y <= 2 and landmarks[1].y >=0.2) and 
     (landmarks[4].y <= 2 and landmarks[4].y >=0.2) and
     (landmarks[1].z < -0.5 and landmarks[4].z <-0.5),
-    fillna=-1
+    fillna=0
     )
-infront_computer_for_30_func = if_metric_fail_avg_and_last_second("infront_computer", lambda infront_computer: infront_computer > 0, seconds=60*30, percent=60*30*0.90)
+infront_computer_for_30_func = if_metric_fail_avg("infront_computer", 
+    lambda infront_computer: infront_computer > 0, 
+    seconds=60*INFRONT_COMPUTER_MIN, percent=0.80, last_second=False)
 infront_computer_for_30 = PostureSubMetricTs("infront_computer_30min", infront_computer_for_30_func)
 infront_computer_for_30_alert = PostureKDeltaAlert("infront_computer_30min", infront_computer_for_30, 1)
 
@@ -88,6 +91,8 @@ config_file_path = os.path.abspath(__file__)
 
 posture_session_args = {
     'metricTsDict': metricTsDict,
-    'alertRules': [headdown_alert, shoulder_tilt_alert, infront_computer_for_30_alert],
+    'alertRules': [headdown_alert, shoulder_tilt_alert, 
+    infront_computer_for_30_alert
+    ],
     'config_datapath':config_file_path
 }
