@@ -23,7 +23,7 @@ def left_right_wrist_not_symmetric(landmark_lst: list) -> float:
     return max([x_diff, y_diff]) > WRIST_DIFF_THRESHOLD
 
 left_right_wrist_not_symmetric_metric = PostureMetricTs("left_right_wrist_not_symmetric", metric_func=left_right_wrist_not_symmetric)
-wrist_not_symmetric_alertrule = PostureKDeltaAlert('wrist_not_symmetrict', left_right_wrist_not_symmetric_metric, 1)
+wrist_not_symmetric_alertrule = PostureKDeltaAlert('wrist_not_symmetric', left_right_wrist_not_symmetric_metric, 1)
 
 metricTsDict = {    
     left_right_wrist_not_symmetric_metric.name: left_right_wrist_not_symmetric_metric

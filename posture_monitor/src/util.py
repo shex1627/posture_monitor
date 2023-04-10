@@ -37,8 +37,10 @@ def make_raw_landmark_metric_func(landmark_index: int, axis: str):
             return landmarks[landmark_index].x
         elif axis == 'y':
             return landmarks[landmark_index].y
+        elif axis == 'z':
+            return landmarks[landmark_index].z
         else:
-            raise ValueError(f"axis can only be 'x' or 'y'")
+            raise ValueError(f"axis can only be 'x' or 'y' or 'z")
     return landmark_metric_func
 
 def create_basic_landmarks():# -> Dict[str, PostureMetricTs]:
@@ -49,7 +51,9 @@ def create_basic_landmarks():# -> Dict[str, PostureMetricTs]:
     for landmark_index in landmark_indices:
         landmark_x_metric = PostureMetricTs(f"landmark_{landmark_index}_x", metric_func=make_raw_landmark_metric_func(landmark_index, 'x'))
         landmark_y_metric = PostureMetricTs(f"landmark_{landmark_index}_y", metric_func=make_raw_landmark_metric_func(landmark_index, 'y'))
+        landmark_z_metric = PostureMetricTs(f"landmark_{landmark_index}_z", metric_func=make_raw_landmark_metric_func(landmark_index, 'z'))
         metricTs_dict[landmark_x_metric.name] = landmark_x_metric
         metricTs_dict[landmark_y_metric.name] = landmark_y_metric
+        metricTs_dict[landmark_z_metric.name] = landmark_z_metric
     return metricTs_dict
                 

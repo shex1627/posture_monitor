@@ -45,7 +45,7 @@ KEY_ALERT_TOGGLE = Key.f6
 KEY_TRACK_DATA_TOGGLE = Key.f7
 KEY_CAMERA_TOGGLE = Key.f8
 KEY_EXIT = Key.f4
-
+BG_COLOR = (192, 192, 192) # gray
 
 def on_press_loop(key):
     global sound_alert_on
@@ -115,7 +115,8 @@ def main():
 
             with mp_pose.Pose(
                 min_detection_confidence=0.5,
-                min_tracking_confidence=0.5) as pose:
+                min_tracking_confidence=0.5,
+                enable_segmentation=True) as pose:
                 while camera_on and cap.isOpened():
                     
                     # initalize alert trigger is false
@@ -134,6 +135,15 @@ def main():
                     image.flags.writeable = False
                     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
                     results = pose.process(image)
+
+                    # masked
+                    try:
+                        condition = np.stack((results.segmentation_mask,) * 3, axis=-1) > 0.1
+                    except:
+                        continue
+                    bg_image = np.zeros(image.shape, dtype=np.uint8)
+                    bg_image[:] = BG_COLOR
+                    image = np.where(condition, image, bg_image)
 
                     # log landmarks
                     if results.pose_landmarks:
@@ -181,12 +191,12 @@ def main():
                     if results.pose_landmarks and alerts_trigger:
                         y_increment = 120
                         y_init = 100# - y_increment
-                        font_scale = 2.5
+                        font_scale = 1.5
                         red_background = np.full((image_flip.shape[0], image_flip.shape[1], 3), (0, 0, 255),dtype=np.uint8)
                         image_flip = cv2.addWeighted(image_flip, 0.5, red_background, 0.5, 0)
                         for i in range(len(alerts_trigger)):
                             cv2.putText(img=image_flip, text=alerts_trigger[i], org=(100,y_init+i*y_increment), 
-                            fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=6, lineType=cv2.LINE_AA)
+                            fontFace=font, 	fontScale=font_scale, color=(0, 255, 0), thickness=2, lineType=cv2.LINE_AA)
                     
                     # show on windows if tracking and alert are on
                     y_increment = 60
